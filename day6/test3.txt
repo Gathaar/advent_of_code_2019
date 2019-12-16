@@ -1,0 +1,8 @@
+COM)B
+C)D
+E)F
+G)H
+B)C
+D)E
+F)G
+COM)A
