@@ -1,100 +1,36 @@
-#   Day 4 part 1: rules
-#       - 6 digits
-#       - given range
-#       - digits only INCREASE (0 => 9)
-#       - 1 double MUST be present
+class Validator:
+    def __init__(self):
+        self.password = ''
 
+    def is_valid(self, password: str) -> bool:
+        self.password = password
+        dbl = self.has_double()
+        increment_only = self.never_decrease()
+        return dbl and increment_only
 
-import unittest
-
-
-class Day4Tests(unittest.TestCase):
-    def test_is_valid(self):
-        self.assertEqual(False, is_valid_1(543210))
-        self.assertEqual(False, is_valid_1(123456))
-        self.assertEqual(True, is_valid_1(123345))
-        # Actual examples listed on page
-        self.assertEqual(True, is_valid_1(111111))
-        self.assertEqual(False, is_valid_1(223450))
-        self.assertEqual(False, is_valid_1(123789))
-
-    def test_is_valid_2(self):
-        self.assertEqual(True, is_valid_2(112233))
-        self.assertEqual(False, is_valid_2(123444))
-        self.assertEqual(True, is_valid_2(111122))
-
-
-def is_valid_1(password: int):
-    # map to int, then list
-    number_list = list(map(int, str(password)))
-
-    if len(number_list) != 6:
+    def has_double(self) -> bool:
+        for i in range(len(self.password)-1):
+            for j in range(i + 1, len(self.password) - 1):
+                if self.password[i] == self.password[j]:
+                    return True
         return False
-    i = 0       # loop counter
-    has_double = False
 
-    for i in range(len(number_list) - 1):
-        if number_list[i] > number_list[i+1]:
-            return False
-        elif number_list[i] == number_list[i+1]:
-            has_double = True
-
-    return has_double
+    def never_decrease(self) -> bool:
+        for i in range(len(self.password) - 1):
+            if int(self.password[i]) > int(self.password[i+1]):
+                return False
+        return True
 
 
-def is_valid_2(password):
-    # map to int, then list
-    number_list = list(map(int, str(password)))
-
-    if len(number_list) != 6:
-        return False
-    i = 0  # loop counter
-    has_double = False
-
-    for i in range(len(number_list) - 1):
-        if number_list[i] > number_list[i + 1]:
-            return False
-        elif number_list[i] == number_list[i + 1]:
-            has_double = True
-
-    if has_double:
-        # Check for an element's count to be EXACTLY 2
-        for i in number_list:
-            if number_list.count(i) == 2:
-                return True
-    return False
-
-
-def day4part1(minimum: int, maximum: int):
-    i = minimum
+def day4(lower_bound: int, upper_bound: int) -> int:
     counter = 0
-
-    while i <= maximum:
-        if is_valid_1(i):
+    v = Validator()
+    for i in range(lower_bound, upper_bound + 1):
+        if v.is_valid(str(i)):
             counter += 1
-        i += 1
-
+            print(f'Password {i} is valid, counter at {counter}')
     return counter
 
 
-def day4part2(minimum: int, maximum: int):
-    i = minimum
-    counter = 0
-
-    while i <= maximum:
-        if is_valid_2(i):
-            counter += 1
-        i += 1
-
-    return counter
-
-
-if __name__ == "__main__":
-    lower_bound = 197487
-    upper_bound = 673251
-
-    solution_part_1 = day4part1(lower_bound, upper_bound)
-    solution_part_2 = day4part2(lower_bound, upper_bound)
-
-    print(f'Solution for part 1: {solution_part_1} valid passwords.\n'
-          f'Solution for part 2: {solution_part_2} valid passwords.')
+if __name__ == '__main__':
+    print(f'Day 4 Part 1 output: {day4(273025, 767253)} valid passwords')

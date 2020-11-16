@@ -1,129 +1,81 @@
-import unittest
-from operator import itemgetter
-
-
-class Day3Test(unittest.TestCase):
-    def test_part1_1(self):
-        raw_input = 'R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83'
-        self.assertEqual(159, day3part1(raw_input))
-
-    def test_part1_2(self):
-        raw_input = 'R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7'
-        self.assertEqual(135, day3part1(raw_input))
-
-    def test_part2_1(self):
-        raw_input = 'R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83'
-        self.assertEqual(610, day3part2(raw_input))
-
-    def test_part2_2(self):
-        raw_input = 'R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7'
-        self.assertEqual(410, day3part2(raw_input))
+from typing import List
 
 
 class Wire:
-    def __init__(self, raw_input):
-        # We get a path, let's build this wire
-        self.path = [[0, 0]]
-        x = 0   # "LEFT - RIGHT"
-        y = 0   # "UP - DOWN"
-        for maneuver in raw_input.split(','):
-            if maneuver[0] == 'U':
-                # UP
-                for i in range(int(maneuver[1:])):
-                    y += 1
-                    self.path.append([x, y])
-            elif maneuver[0] == 'D':
-                # DOWN
-                for i in range(int(maneuver[1:])):
-                    y -= 1
-                    self.path.append([x, y])
-            elif maneuver[0] == 'L':
-                # LEFT
-                for i in range(int(maneuver[1:])):
-                    x -= 1
-                    self.path.append([x, y])
-            elif maneuver[0] == 'R':
-                # RIGHT
-                for i in range(int(maneuver[1:])):
-                    x += 1
-                    self.path.append([x, y])
-            else:
-                # PANIC
-                print(f'Found |{maneuver}| and stumbled')
+    def __init__(self, raw_path: str):
+        self.node_list = []
+        self.sorted_nodes = []
+        self.raw_path = raw_path.split(',')
+        self.x = 0
+        self.y = 0
+
+    def run_path(self):
+        self.x = 0
+        self.y = 0
+        self.node_list = []  # Reset - 0, 0 not added
+
+        directions = {
+            'U': (0, 1),
+            'R': (1, 0),
+            'D': (0, -1),
+            'L': (-1, 0)
+        }
+        for move in self.raw_path:
+            direction = directions.get(move[0])
+            distance = int(move[1:])
+            for i in range(distance):
+                self.x += direction[0]  # X-position manipulation
+                self.y += direction[1]  # Y-"       "       "
+                self.node_list.append((self.x, self.y))
+                #print(f'Added {self.x}, {self.y} to path')
 
 
-def get_crossovers(wire1: Wire, wire2: Wire):
-    crossovers = []
-    w1_path = wire1.path[1:].copy()
-    w2_path = wire2.path[1:].copy()
-    w1_path.sort(key=itemgetter(1))  # pre-sort by y
-    w1_path.sort(key=itemgetter(0))  # sort by x value
-    w2_path.sort(key=itemgetter(1))
-    w2_path.sort(key=itemgetter(0))  # sort by x value
+class Wiregrid:
+    def __init__(self, wires: List[Wire]):
+        self.wires = wires
 
-    for w1_node in w1_path:
-        for w2_node in w2_path:
-            if w1_node[0] == w2_node[0]:
-                # x is equal
-                if w1_node[1] == w2_node[1]:
-                    # y, too, is equal!
-                    crossovers.append(w1_node)
-            elif w1_node[0] < w2_node[0]:
-                break
-        w2_path = w2_path[1:]  # Reduce complexity - as lists are sorted this won't need to be checked again
-        #print(f'Length remaining: {len(w2_path)}')
+    def run_wires(self):
+        for wire in self.wires:
+            wire.run_path()
 
-    return crossovers
+    def distance_to_closest_crossing(self) -> int:
+        crossings = self.get_crossings()
+        if len(crossings) == 0:
+            raise Exception('No crossings found')
+        min_distance = abs(crossings[0][0]) + abs(crossings[0][1])
+        for cross in crossings[1:]:
+            distance_to_cross = abs(cross[0]) + abs(cross[1])
+            if distance_to_cross < min_distance:
+                min_distance = distance_to_cross
+                # print(f'cross {cross} wins now with {min_distance}')
+        return min_distance
 
+    def wire_distance_to_closest_crossing(self) -> int:
+        crossings = self.get_crossings()
+        shortest_path = 9999999
+        for cross in crossings:
+            w0_dist = 0
+            w1_dist = 0
+            while self.wires[0].node_list[w0_dist] != cross:
+                w0_dist += 1
+            while self.wires[1].node_list[w1_dist] != cross:
+                w1_dist += 1
+            if w0_dist + w1_dist < shortest_path:
+                shortest_path = w0_dist + w1_dist
+        return shortest_path + 2        # Accounting for the move from the origin to the first node
 
-def cross_reference(wire1: Wire, wire2: Wire):
-    # Clever name, giggity
-    # Returns distance to 0,0 (manhattan distance)
-    crossovers = get_crossovers(wire1, wire2)
-
-    # check minimum distance
-    min_distance = 999999    # arbitrarily large, right?
-    for node in crossovers:
-        node_distance = abs(node[0]) + abs(node[1])
-        if node_distance < min_distance:
-            min_distance = node_distance
-    return min_distance
-
-
-def shortest_signal_distance(wire1: Wire, wire2: Wire):
-    crossovers = get_crossovers(wire1, wire2)
-    shortest_signal = 999999    # arbitrarily large
-    for crossing in crossovers:
-        i = 0
-        j = 0
-        while wire1.path[i] != crossing:
-            i += 1
-        while wire2.path[j] != crossing:
-            j += 1
-        print(f'Distance to crossing at x:{crossing[0]}/y:{crossing[1]} reached in following distances:\n\t'
-              f'- Wire 1: {i}\n\t- Wire 2: {j}')
-        if i + j < shortest_signal:
-            print(f'\t !! NEW RECORD -- {i + j} !!')
-            shortest_signal = i + j
-    return shortest_signal
-
-def day3part1(raw_input):
-    wire1 = Wire(raw_input.split('\n')[0])
-    wire2 = Wire(raw_input.split('\n')[1])
-    return cross_reference(wire1, wire2)
-
-
-def day3part2(raw_input):
-    wire1 = Wire(raw_input.split('\n')[0])
-    wire2 = Wire(raw_input.split('\n')[1])
-    return shortest_signal_distance(wire1, wire2)
+    def get_crossings(self):
+        crossings = list(set(self.wires[0].node_list).intersection(self.wires[1].node_list))
+        # print(f'Crossings: {crossings}\nCount: {len(crossings)}')
+        return crossings
 
 
 if __name__ == '__main__':
-    raw_input = open('input.txt', 'r').read()
-
-    # Part 1
-    # print(f'Solution for day 3 part 1: {day3part1(raw_input)}')
-
-    # Part 2
-    print(f'Solution for day 3 part 2: {day3part2(raw_input)}')
+    wire_paths = open('input.txt').read().strip().split('\n')
+    wire_list = []
+    for path in wire_paths:
+        wire_list.append(Wire(path))
+    wire_grid = Wiregrid(wire_list)
+    wire_grid.run_wires()
+    print(f'Day 3 Part 1 result (closest crossing): {wire_grid.distance_to_closest_crossing()}')
+    print(f'Day 3 Part 2 result (shortest path): {wire_grid.wire_distance_to_closest_crossing()}')
